@@ -17,6 +17,7 @@ def dbeta(x, a, b):
     0.2
 
     """
+    x = np.array(x)
     return gamma(a+b)/(gamma(a)*gamma(b)) * \
            ((a-1) * x**(a-2) * (1-x)**(b-1) - x**(a-1) * (b-1) * (1-x)**(b-2))
 
@@ -298,7 +299,7 @@ class InferenceModule():
             res = scipy.optimize.minimize(
                         f,
                         init,
-                        method='L-BFGS-B',
+                        method='L-BFGS-B', #TODO: why does it only work when method='SLSQP'?
                         jac=True,
                         bounds=bounds,
                         options={'disp':False})
