@@ -308,7 +308,7 @@ class InferenceModule():
             res = scipy.optimize.minimize(
                         f,
                         init,
-                        method='L-BFGS-B', #TODO: why does it only work when method='SLSQP'?
+                        method='SLSQP',#TODO: understand why minimization fails with L-BFGS-B
                         jac=True,
                         bounds=bounds,
                         options={'disp':False})
