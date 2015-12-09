@@ -14,10 +14,19 @@ def dbeta(x, a, b):
     >>> round(dbeta(0.5, 2, 2), 10)
     0.0
     >>> round(dbeta(0.6, 2, 2), 10)
-    0.2
+    -1.2
+    >>> round(dbeta(0.9, 1, 1), 10)
+    0.0
 
     """
     x = np.array(x)
+    #http://www.math.uah.edu/stat/special/Beta.html
+    #B(a,b)=Gamma(a)*Gamma(b)/Gamma(a+b)
+    #derivative of beta distribution
+    #f'(x) = (1/B(a,b)) * x^(a-2) * (1-x)^(b-2) * [(a-1)-(a+b-2)*x], 0<x<1
+    assert (x > 0).all()
+    assert (x < 1).all()
+
     return gamma(a+b)/(gamma(a)*gamma(b)) * \
            ((a-1) * x**(a-2) * (1-x)**(b-1) - x**(a-1) * (b-1) * (1-x)**(b-2))
 
