@@ -7,14 +7,20 @@ class InferenceTest(unittest.TestCase):
 #                     (1, 2): {'vote': 1},
 #                     (1, 3): {'vote': 1}}
 
-    #XXX expected results?
     def test_dbeta(self):
-        expected = 0.0
+        # mode at x = 0.5 (derivative = 0)
         res = dbeta(0.5,2,2)
+        expected = 0.0
         self.assertAlmostEqual(expected, res)
-        #XXX incorrect
-        expected = 0.2
+
+        # should be decreasing for x > 0.5
         res = dbeta(0.6,2,2)
+        expected = -1.2
+        self.assertAlmostEqual(expected, res)
+
+        # should be increasing for x < 0.5
+        res = dbeta(0.3,2,2)
+        expected = 2.4
         self.assertAlmostEqual(expected, res)
 
 #   #TODO test components of inference module
