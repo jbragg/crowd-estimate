@@ -3,8 +3,6 @@ Difference from jbragg Inference module:
     skills are not inverted
 """
 # TODO use util functions for calculating probabilities
-# TODO-PROBLEM adding difficulty prior to the M-step optimization
-#_leads_to_optimization_failure_(ABNORMAL_TERMINATION_IN_LNSRCH)
 
 import numpy as np
 import scipy.optimize
@@ -191,13 +189,8 @@ def EM(observations, nq, nw, spec_bounds, diffs=None, skills=None):
         # log P(votes)
         norm = np.logaddexp(ptrue, pfalse)
 
-        difficulty_prior_term = 0
-        #TODO-PROBLEM difficulty prior
-        if not knownD and USE_DIFFICULTY_PRIOR:
-            difficulty_prior_term = np.sum(np.log(scipy.stats.beta.pdf(D, 1.01, 1.01)))
-
-        #posteriors, ll with difficulty prior
-        return np.exp(ptrue) / np.exp(norm), np.sum(norm) + difficulty_prior_term
+        #posteriors, ll
+        return np.exp(ptrue) / np.exp(norm), np.sum(norm)
 
     def M(posteriors, params):
         # print "M: posteriors, params =", posteriors, params
@@ -213,7 +206,7 @@ def EM(observations, nq, nw, spec_bounds, diffs=None, skills=None):
             dd = CALC_DD(posteriors, observations, curD, curS)
             ds = CALC_DS(posteriors, observations, curD, curS)
 
-            #TODO-PROBLEM difficulty prior
+            # include prior on difficulty
             if not knownD and USE_DIFFICULTY_PRIOR:
                 v += np.sum(np.log(scipy.stats.beta.pdf(curD,1.01,1.01)))
                 pr = scipy.stats.beta.pdf(curD,1.01,1.01)
