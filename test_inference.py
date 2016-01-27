@@ -193,7 +193,7 @@ class InferenceTest(unittest.TestCase):
 
             f,g = CLOSURE_OBJECTIVE_FUNCTION(posteriors, B)
             err = scipy.optimize.check_grad(f, g, test_params)
-            print("Gradient error of %.8f with params=%s" % (err, test_params))
+            #print("Gradient error of %.8f with params=%s" % (err, test_params))
             self.assertLess(err, ACCEPTABLE_GRADIENT_ERROR)
 
 #   def test_mdp(self):
