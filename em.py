@@ -51,8 +51,6 @@ def func(posteriors, B, D, S):
 
     # TERM 2: Sum(w,k)Sum(a=0,1) P(vt = a|b,d,y) * ln P(b_t,w,k | vt = a,
     # d_kt, y_w)
-    t2 = 0
-
     probs = 0.5 * (1 + (1 - D)**S[:, np.newaxis])
 
     true_votes = (B == 1)
@@ -66,37 +64,9 @@ def func(posteriors, B, D, S):
         np.sum(np.log(probs) * false_votes, 0) + \
         np.sum(np.log(1 - probs) * true_votes, 0)
 
-    new_t2 = np.sum(posteriors * ptrue + (1 - posteriors) * pfalse)
+    t2 = np.sum(posteriors * ptrue + (1 - posteriors) * pfalse)
 
-    for t in range(len(D)):
-        for w in range(len(S)):
-            for a in [0, 1]:
-                # compute #t2_left: P(vt = a | b,d,y)
-                if a == 0:
-                    t2_left = 1 - posteriors[t]
-                else:
-                    t2_left = posteriors[t]
-
-                # compute #t2_right: ln P(b_tw | vt=a,dt,yw)
-                b_tw = B[w][t]
-                d = D[t]
-                s = S[w]
-
-                # compute worker accuracy
-                # XXX note does not invert skill
-                x = 0.5 * (1 + (1 - d)**s)
-                if b_tw == a:
-                    t2_right = np.log(x)
-                elif b_tw == -1:
-                    # no vote
-                    t2_right = 0
-                else:
-                    t2_right = np.log(1 - x)
-                t2_inner = t2_left * t2_right
-                t2 += t2_inner
-
-    assert abs(new_t2-t2) < 0.0000001
-    return t1 + new_t2
+    return t1 + t2
 
 def CALC_DS(posteriors, B, D, x):
 
@@ -117,51 +87,10 @@ def CALC_DS(posteriors, B, D, x):
     ds = np.sum(posteriors * ptrue_ds +
                 (1 - posteriors) * pfalse_ds, 1)
 
-    def ds_s(posteriors, B, D, S, i):
-        """
-        Computes worker w_i coefficient in the Jacobian
-        """
-        def help_ds(d, s, b, v):
-            """
-            Computes derivative of ln P(b_t,w | v_t=a, d_t, gamma_w) w.r.t. gamma_w
-            """
-            if b == v:
-                top = 0.5 * (1 - d)**s * np.log(1 - d)
-                bottom = 0.5 * (1 + (1 - d)**s)
-            else:
-                top = -0.5 * (1 - d)**s * np.log(1 - d)
-                bottom = 1 - 0.5 * (1 + (1 - d)**s)
-            return top / bottom
-        total = 0
-        for t in range(len(posteriors)):
-            for a in range(2):
-                # term1
-                # P(v_t=a|B,D,S)
-                if a == 0:
-                    term1 = 1 - posteriors[t]
-                else:
-                    term1 = posteriors[t]
-                # term2
-                d = D[t]
-                # s=1/(S[i])#inverted skill of worker i
-                s = S[i]
-                b = B[i][t]
-                if b == -1:
-                    # worker didn't vote
-                    continue
-                term2 = help_ds(d, s, b, a)
-
-                total += term1 * term2
-        return total
-
-    ret= np.array([ds_s(posteriors, B, D, x, i) for i in range(len(x))])
-
-    assert (abs(ds-ret) < 0.0000001).all()
     return ds
 
 
 def CALC_DD(posteriors, B, x, S):
-
 
     true_votes = (B == 1)
     false_votes = (B == 0)
@@ -179,48 +108,6 @@ def CALC_DD(posteriors, B, x, S):
             np.sum(1/(1-probs)*(-probs_dd) * true_votes, 0)
     dd = posteriors * ptrue_dd + \
             (1-posteriors) * pfalse_dd
-
-    def dd_d(posteriors, B, D, S, t):
-        """
-        Computes question d_t coefficient in the Jacobian
-        """
-        def help_dd(d, s, b, v):
-            """
-            Computes derivative of ln P(b_t,w | v_t=a, d_t, gamma_w) w.r.t. d_t
-            """
-            if b == v:
-                top = -0.5 * s * (1 - d)**(s - 1)
-                bottom = 0.5 * (1 + (1 - d)**s)
-            else:
-                top = 0.5 * s * (1 - d)**(s - 1)
-                bottom = 1 - 0.5 * (1 + (1 - d)**s)
-            return top / bottom
-
-        total = 0
-        for w in range(len(S)):
-            for a in range(2):
-                # term1
-                # P(v_t=a|B,D,S)
-                if a == 0:
-                    term1 = 1 - posteriors[t]
-                else:
-                    term1 = posteriors[t]
-                # term2
-                # if btw = vt
-                d = D[t]
-                s = S[w]
-                b = B[w][t]
-                if b == -1:
-                    # worker didn't vote
-                    continue
-                term2 = help_dd(d, s, b, a)
-
-                #
-                total += term1 * term2
-        return total
-
-    ret= np.array([dd_d(posteriors, B, x, S, i) for i in range(len(x))])
-    assert (abs(dd-ret) < 0.0000001).all()
 
     return dd
 
