@@ -196,6 +196,21 @@ class InferenceTest(unittest.TestCase):
             #print("Gradient error of %.8f with params=%s" % (err, test_params))
             self.assertLess(err, ACCEPTABLE_GRADIENT_ERROR)
 
+    def test_big_em(self):
+        import itertools
+        import time
+        print("Start Test EM with lots of votes")
+        nw = 100
+        workers = {i:{'skill':None} for i in range(nw)}
+        nq = 100
+        questions = {i:{'difficulty':None} for i in range(nq)}
+        votes = {(w,q):{'vote':np.random.choice([0,1])} for (w,q) in itertools.product(workers, questions)}
+
+        start=time.time()
+        d_res = self.dai_helper(votes, workers, questions)
+        end = time.time()
+        print d_res
+        print("End Test EM with %d votes, took time=%s" % (nq*nw, str(end-start)))
 
 
 #   def test_mdp(self):
