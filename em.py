@@ -45,13 +45,28 @@ def func(posteriors, B, D, S):
     # TERM 1: Sum(t)Sum(a=0,1) P(vt = a|b,d,y) * ln P(vt = a)
     t1 = 0
 
-    for q in range(len(D)):
-        t1 += posteriors[q] * np.log(0.5)
-        t1 += (1 - posteriors[q]) * np.log(0.5)
+    label_prob = 0.5
+    t1 += np.sum(posteriors)*np.log(label_prob)
+    t1 += np.sum(1-posteriors)*np.log(1-label_prob)
 
     # TERM 2: Sum(w,k)Sum(a=0,1) P(vt = a|b,d,y) * ln P(b_t,w,k | vt = a,
     # d_kt, y_w)
     t2 = 0
+
+    probs = 0.5 * (1 + (1 - D)**S[:, np.newaxis])
+
+    true_votes = (B == 1)
+    false_votes = (B == 0)
+
+    ptrue = \
+        np.sum(np.log(probs) * true_votes, 0) + \
+        np.sum(np.log(1 - probs) * false_votes, 0)
+
+    pfalse = \
+        np.sum(np.log(probs) * false_votes, 0) + \
+        np.sum(np.log(1 - probs) * true_votes, 0)
+
+    new_t2 = np.sum(posteriors * ptrue + (1 - posteriors) * pfalse)
 
     for t in range(len(D)):
         for w in range(len(S)):
@@ -64,9 +79,6 @@ def func(posteriors, B, D, S):
 
                 # compute #t2_right: ln P(b_tw | vt=a,dt,yw)
                 b_tw = B[w][t]
-                if b_tw == -1:
-                    # no vote
-                    continue
                 d = D[t]
                 s = S[w]
 
@@ -75,15 +87,36 @@ def func(posteriors, B, D, S):
                 x = 0.5 * (1 + (1 - d)**s)
                 if b_tw == a:
                     t2_right = np.log(x)
+                elif b_tw == -1:
+                    # no vote
+                    t2_right = 0
                 else:
                     t2_right = np.log(1 - x)
                 t2_inner = t2_left * t2_right
                 t2 += t2_inner
 
-    return t1 + t2
-
+    assert abs(new_t2-t2) < 0.0000001
+    return t1 + new_t2
 
 def CALC_DS(posteriors, B, D, x):
+
+    true_votes = (B == 1)
+    false_votes = (B == 0)
+
+    probs = 0.5 * (1 + (1 - D)**x[:, np.newaxis])
+    probs_ds = 0.5 * (1 - D)**x[:, np.newaxis] * np.log(1 - D)
+
+    ptrue_ds = \
+                1 / probs * probs_ds * true_votes + \
+                1 / (1 - probs) * (-probs_ds) * false_votes
+
+    pfalse_ds = \
+                1 / probs * probs_ds * false_votes + \
+                1 / (1 - probs) * (-probs_ds) * true_votes
+
+    ds = np.sum(posteriors * ptrue_ds +
+                (1 - posteriors) * pfalse_ds, 1)
+
     def ds_s(posteriors, B, D, S, i):
         """
         Computes worker w_i coefficient in the Jacobian
@@ -121,10 +154,32 @@ def CALC_DS(posteriors, B, D, x):
                 total += term1 * term2
         return total
 
-    return np.array([ds_s(posteriors, B, D, x, i) for i in range(len(x))])
+    ret= np.array([ds_s(posteriors, B, D, x, i) for i in range(len(x))])
+
+    assert (abs(ds-ret) < 0.0000001).all()
+    return ds
 
 
 def CALC_DD(posteriors, B, x, S):
+
+
+    true_votes = (B == 1)
+    false_votes = (B == 0)
+
+    probs = 0.5 * (1 + (1 - x)**S[:, np.newaxis])
+
+    probs_dd = -0.5 * S[:, np.newaxis] * (1 - x)**((S - 1)[:, np.newaxis])
+
+    ptrue_dd = \
+            np.sum(1/probs*probs_dd * true_votes, 0) + \
+            np.sum(1/(1-probs)*(-probs_dd) * false_votes, 0)
+
+    pfalse_dd = \
+            np.sum(1/probs*probs_dd * false_votes, 0) + \
+            np.sum(1/(1-probs)*(-probs_dd) * true_votes, 0)
+    dd = posteriors * ptrue_dd + \
+            (1-posteriors) * pfalse_dd
+
     def dd_d(posteriors, B, D, S, t):
         """
         Computes question d_t coefficient in the Jacobian
@@ -164,7 +219,10 @@ def CALC_DD(posteriors, B, x, S):
                 total += term1 * term2
         return total
 
-    return np.array([dd_d(posteriors, B, x, S, i) for i in range(len(x))])
+    ret= np.array([dd_d(posteriors, B, x, S, i) for i in range(len(x))])
+    assert (abs(dd-ret) < 0.0000001).all()
+
+    return dd
 
 
 def EM(observations, nq, nw, spec_bounds, diffs=None, skills=None):
