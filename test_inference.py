@@ -183,9 +183,9 @@ class InferenceTest(unittest.TestCase):
             return FUNC, GRAD
 
         for i in range(num_checks):
-            posteriors=[np.random.random() for i in range(nq)]
+            posteriors = np.random.rand(nq)
 
-            B=[[np.random.choice([-1,0,1]) for q in range(nq)] for w in range(nw)]
+            B=np.array([[np.random.choice([-1,0,1]) for q in range(nq)] for w in range(nw)])
 
             test_diffs = [ad + (bd-ad)*np.random.random() for q in range(nq)]
             test_skills = [aw + (bw-aw)*np.random.random() for w in range(nw)]
@@ -195,6 +195,8 @@ class InferenceTest(unittest.TestCase):
             err = scipy.optimize.check_grad(f, g, test_params)
             #print("Gradient error of %.8f with params=%s" % (err, test_params))
             self.assertLess(err, ACCEPTABLE_GRADIENT_ERROR)
+
+
 
 #   def test_mdp(self):
 #       # test mdp
