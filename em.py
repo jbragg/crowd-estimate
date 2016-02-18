@@ -135,7 +135,7 @@ def EM(observations, nq, nw, spec_bounds, diffs=None, skills=None):
         norm = np.logaddexp(ptrue, pfalse)
 
         #posteriors, ll
-        return np.exp(ptrue) / np.exp(norm), np.sum(norm)
+        return np.exp(ptrue-norm), np.sum(norm)
 
     def M(posteriors, params):
         # print "M: posteriors, params =", posteriors, params
@@ -177,7 +177,7 @@ def EM(observations, nq, nw, spec_bounds, diffs=None, skills=None):
             bounds=spec_bounds,
             options={'disp': False})
         if not res.success:
-            raw_input()
+            print res
         assert res.success
 
         return res.x
