@@ -200,11 +200,25 @@ class InferenceTest(unittest.TestCase):
         import itertools
         import time
         print("Start Test EM with lots of votes")
-        nw = 100
-        workers = {i:{'skill':None} for i in range(nw)}
+        nw = 10
         nq = 100
+        workers = {i:{'skill':None} for i in range(nw)}
         questions = {i:{'difficulty':None} for i in range(nq)}
-        votes = {(w,q):{'vote':np.random.choice([0,1])} for (w,q) in itertools.product(workers, questions)}
+        skills = [np.random.random() for i in range(nw)]
+        diffs = [np.random.random() for i in range(nq)]
+        truth = [np.random.choice([0,1]) for i in range(nq)]
+
+        def randomVote(d,s,v):
+            accuracy = 0.5 * (1 + (1 - d)**s)
+            draw= np.random.random()
+            if draw < accuracy:
+                #vote for correct answer
+                return v
+            else:
+                #vote for wrong answer
+                return 1-v
+
+        votes = {(w,q):{'vote':randomVote(diffs[q], skills[w], truth[q])} for (w,q) in itertools.product(workers, questions)}
 
         start=time.time()
         d_res = self.dai_helper(votes, workers, questions)
